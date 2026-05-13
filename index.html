@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Sejm 5.0</title>
+<title>Sejm 6.0</title>
 
 <style>
 body{
@@ -28,7 +28,7 @@ body{
 .panel{
   background:white;
   padding:20px;
-  width:450px;
+  width:460px;
   border-radius:12px;
   box-shadow:0 0 15px rgba(0,0,0,0.15);
 }
@@ -78,11 +78,12 @@ button,select{
   flex-direction:column;
   font-size:26px;
   z-index:999;
+  text-align:center;
 }
 
 .timer{
-  font-size:20px;
   margin-top:10px;
+  font-size:20px;
   color:#fbbf24;
 }
 </style>
@@ -90,11 +91,12 @@ button,select{
 
 <body>
 
-<div class="topbar">🏛️ SEJM 5.0</div>
+<div class="topbar">🏛️ SEJM 6.0</div>
 
+<!-- MENU -->
 <div id="menu" class="container">
   <div class="panel">
-    <h2>Wybierz ekran</h2>
+    <h2>Wybierz rolę</h2>
     <button class="blue" onclick="start('marshal')">🟦 Marszałek</button>
     <button class="green" onclick="start('mp')">🟩 Poseł</button>
   </div>
@@ -114,7 +116,7 @@ button,select{
       </select>
 
       <button class="blue" onclick="startVote()">🗳️ Start głosowania</button>
-      <button class="red" onclick="endVote()">🛑 Koniec głosowania</button>
+      <button class="red" onclick="endVote()">🛑 Zakończ głosowanie</button>
 
       <button class="orange" onclick="toggleMic()">🎤 Mikrofon mównicy</button>
 
@@ -124,18 +126,21 @@ button,select{
       <select id="breakTime">
         <option value="10">10s</option>
         <option value="20">20s</option>
-        <option value="60">1 min</option>
-        <option value="300">5 min</option>
-        <option value="600">10 min</option>
-        <option value="900">15 min</option>
-        <option value="1200">20 min</option>
-        <option value="1500">25 min</option>
-        <option value="1800">30 min</option>
+        <option value="60">1m</option>
+        <option value="300">5m</option>
+        <option value="600">10m</option>
+        <option value="900">15m</option>
+        <option value="1200">20m</option>
+        <option value="1500">25m</option>
+        <option value="1800">30m</option>
       </select>
 
       <button class="dark" onclick="startBreak()">⏸️ Przerwa</button>
 
       <button class="red" onclick="callGuard()">🚨 Straż Marszałkowska</button>
+
+      <button class="red" onclick="permaLock()">⛔ Zablokuj NA STAŁE</button>
+      <button class="green" onclick="removePermaLock()">🔓 Usuń blokadę stałą</button>
 
       <div id="status" style="margin-top:10px;font-weight:bold;">Gotowy</div>
 
@@ -163,7 +168,7 @@ button,select{
   </div>
 
   <div class="lock" id="lock">
-    PRZERWA | RZECZPOSPOLITA POLSKA
+    PRZERWA / BLOKADA
     <div class="timer" id="timer"></div>
   </div>
 </div>
@@ -174,6 +179,7 @@ const ch = new BroadcastChannel("sejm");
 
 let role="";
 let timerInterval=null;
+let permanentLock = localStorage.getItem("permaLock")==="true";
 
 // ===== START =====
 function start(r){
@@ -187,6 +193,11 @@ function start(r){
 
   if(role==="mp"){
     document.getElementById("mpPanel").style.display="block";
+
+    if(permanentLock){
+      document.getElementById("lock").style.display="flex";
+      document.getElementById("timer").innerText="BLOKADA STAŁA";
+    }
   }
 }
 
@@ -221,7 +232,7 @@ function vote(v){
   ch.postMessage({type:"vote", value:v});
 }
 
-// ===== MIKROFON =====
+// ===== MIC =====
 let mic=true;
 function toggleMic(){
   mic=!mic;
@@ -230,11 +241,11 @@ function toggleMic(){
 
 // ===== STRAŻ =====
 function callGuard(){
-  let p=prompt("Miejsce (1-120 / Mównica / A-E):");
+  let p=prompt("Miejsce:");
   if(p) ch.postMessage({type:"guard", place:p});
 }
 
-// ===== BLOKADA =====
+// ===== BLOKADY =====
 function lockAll(){
   ch.postMessage({type:"lock"});
 }
@@ -249,12 +260,26 @@ function startBreak(){
   ch.postMessage({type:"break", time:t});
 }
 
+// ===== PERMA LOCK =====
+function permaLock(){
+  localStorage.setItem("permaLock","true");
+  permanentLock=true;
+  ch.postMessage({type:"permalock"});
+}
+
+function removePermaLock(){
+  localStorage.setItem("permaLock","false");
+  permanentLock=false;
+  ch.postMessage({type:"unpermalock"});
+}
+
 // ===== AWARYJNE =====
 function emergencyUnlock(){
-  let pass=prompt("Hasło Marszałka:");
+  let pass=prompt("Hasło:");
   if(pass==="245516364"){
+    removePermaLock();
     ch.postMessage({type:"unlock"});
-  } else alert("BŁĘDNE HASŁO");
+  }
 }
 
 // ===== ODBIÓR =====
@@ -267,6 +292,15 @@ ch.onmessage=(e)=>{
     }
 
     if(e.data.type==="unlock"){
+      document.getElementById("lock").style.display="none";
+    }
+
+    if(e.data.type==="permalock"){
+      document.getElementById("lock").style.display="flex";
+      document.getElementById("timer").innerText="BLOKADA STAŁA";
+    }
+
+    if(e.data.type==="unpermalock"){
       document.getElementById("lock").style.display="none";
     }
 
@@ -284,7 +318,6 @@ ch.onmessage=(e)=>{
           clearInterval(timerInterval);
           document.getElementById("lock").style.display="none";
         }
-
       },1000);
     }
 
