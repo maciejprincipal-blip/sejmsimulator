@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Sejm Symulator 2.0</title>
+<title>Sejm Symulator 3.0</title>
 
 <style>
 body {
@@ -17,7 +17,6 @@ body {
   padding: 12px;
   text-align: center;
   font-weight: bold;
-  font-size: 18px;
 }
 
 .container {
@@ -48,66 +47,48 @@ button, select {
 .posel { background: #16a34a; color: white; }
 .red { background: #dc2626; color: white; }
 .orange { background: #ea580c; color: white; }
-.purple { background: #9333ea; color: white; }
 .dark { background: #111827; color: white; }
 
 .lock {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   background: black;
   color: white;
   display: none;
   justify-content: center;
   align-items: center;
-  font-size: 30px;
-  z-index: 999;
+  font-size: 28px;
   flex-direction: column;
-}
-
-.status {
-  margin-top: 15px;
-  padding: 10px;
-  background: #e5e7eb;
-  border-radius: 6px;
-  font-weight: bold;
+  z-index: 999;
 }
 
 .seats {
   display: grid;
   grid-template-columns: repeat(12,1fr);
   gap: 4px;
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
 .seat {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   background: #9ca3af;
   border-radius: 3px;
 }
 
 .active {
   background: #22c55e;
-  transform: scale(1.2);
-}
-
-.warning {
-  background: #fef3c7;
-  padding: 10px;
-  border-radius: 6px;
-  margin-top: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">🏛️ SYSTEM SEJMU 2.0</div>
+<div class="topbar">🏛️ SEJM SYSTEM</div>
 
-<div class="container">
+<!-- MENU -->
+<div id="menu" class="container">
   <div class="panel">
 
     <h2>Wybierz ekran</h2>
@@ -123,207 +104,143 @@ button, select {
   </div>
 </div>
 
-<div class="lock" id="lock">
-🔒 POSIEDZENIE NIEJAWNE<br>
-MONITOR ZABLOKOWANY
+<!-- MARSZAŁEK -->
+<div id="marshalPanel" style="display:none;">
+  <div class="topbar">🟦 MARSZAŁEK</div>
+
+  <div class="container">
+    <div class="panel">
+
+      <select id="bill">
+        <option>Ustawa budżetowa</option>
+        <option>Ustawa o edukacji</option>
+        <option>Ustawa o internecie</option>
+      </select>
+
+      <button class="marszalek" onclick="startVote()">🗳️ Start głosowania</button>
+      <button class="red" onclick="endVote()">🛑 Zakończ głosowanie</button>
+      <button class="orange" onclick="toggleMic()">🎤 Mikrofon</button>
+      <button class="dark" onclick="lockAll()">🔒 Posiedzenie niejawne</button>
+
+      <div id="status" style="margin-top:10px;font-weight:bold;">
+        System gotowy
+      </div>
+
+      <div class="seats" id="seats"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- POSEŁ -->
+<div id="mpPanel" style="display:none;">
+  <div class="topbar">🟩 POSEŁ</div>
+
+  <div class="container">
+    <div class="panel">
+
+      <div id="voteInfo">Brak głosowania</div>
+
+      <button class="marszalek" onclick="sendVote('ZA')">👍 ZA</button>
+      <button class="red" onclick="sendVote('PRZECIW')">👎 PRZECIW</button>
+
+      <div id="mpStatus" style="margin-top:10px;">
+        Oczekiwanie na Marszałka
+      </div>
+
+    </div>
+  </div>
+
+  <div class="lock" id="lock">
+    🔒 POSIEDZENIE NIEJAWNE
+  </div>
 </div>
 
 <script>
 
 const channel = new BroadcastChannel("sejm");
+
 let role = "";
 let votesFor = 0;
 let votesAgainst = 0;
 let mic = true;
 
-function playBell(){
-  const ctx = new(window.AudioContext || window.webkitAudioContext)();
-  const osc = ctx.createOscillator();
-  osc.frequency.value = 700;
-  osc.connect(ctx.destination);
-  osc.start();
-  setTimeout(()=>osc.stop(),200);
-}
-
+// ===== START =====
 function start(r){
   role = r;
 
-  // ================= MARSZAŁEK =================
+  document.getElementById("menu").style.display = "none";
+
   if(role === "marshal"){
-
-    document.body.innerHTML = `
-      <div class="topbar">🟦 PANEL MARSZAŁKA</div>
-
-      <div class="container">
-        <div class="panel">
-
-          <select id="bill">
-            <option>Ustawa budżetowa</option>
-            <option>Ustawa o szkołach</option>
-            <option>Ustawa o internecie</option>
-          </select>
-
-          <button class="marszalek" onclick="startVote()">🗳️ Rozpocznij głosowanie</button>
-
-          <button class="red" onclick="endVote()">🛑 Zakończ głosowanie</button>
-
-          <button class="orange" onclick="toggleMic()">🎤 Mikrofon mównicy</button>
-
-          <button class="purple" onclick="callGuard()">🚨 Straż Marszałkowska</button>
-
-          <button class="dark" onclick="lockAll()">🔒 Rozpocznij posiedzenie niejawne</button>
-
-          <div class="status" id="status">
-            System gotowy
-          </div>
-
-          <div class="warning">
-            ZA: <span id="za">0</span><br>
-            PRZECIW: <span id="przeciw">0</span>
-          </div>
-
-          <div class="seats" id="seats"></div>
-
-        </div>
-      </div>
-    `;
-
+    document.getElementById("marshalPanel").style.display = "block";
     createSeats();
   }
 
-  // ================= POSEŁ =================
   if(role === "mp"){
-
-    document.body.innerHTML = `
-      <div class="topbar">🟩 PANEL POSŁA</div>
-
-      <div class="container">
-        <div class="panel">
-
-          <h3>Stan obrad</h3>
-
-          <div id="voteInfo">Brak aktywnego głosowania</div>
-
-          <button class="marszalek" onclick="sendVote('ZA')">👍 Głos ZA</button>
-
-          <button class="red" onclick="sendVote('PRZECIW')">👎 Głos PRZECIW</button>
-
-          <div class="status" id="mpStatus">
-            Oczekiwanie na decyzje Marszałka
-          </div>
-
-        </div>
-      </div>
-
-      <div class="lock" id="lock">
-        🔒 MONITOR ZABLOKOWANY | Czekaj na rozpoczęcie posiedzenia!
-        | Rzeczypospolita Polska
-      </div>
-    `;
+    document.getElementById("mpPanel").style.display = "block";
   }
 }
 
-// ================= SALA OBRAD =================
+// ===== SALA =====
 function createSeats(){
-  const seats = document.getElementById("seats");
+  const s = document.getElementById("seats");
 
   for(let i=0;i<120;i++){
-    const seat = document.createElement("div");
-    seat.className = "seat";
-    seats.appendChild(seat);
+    const d = document.createElement("div");
+    d.className = "seat";
+    s.appendChild(d);
   }
 }
 
-// ================= GŁOSOWANIE =================
+// ===== DŹWIĘK =====
+function bell(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = ctx.createOscillator();
+  o.frequency.value = 700;
+  o.connect(ctx.destination);
+  o.start();
+  setTimeout(()=>o.stop(),150);
+}
+
+// ===== MARSZAŁEK =====
 function startVote(){
   const bill = document.getElementById("bill").value;
+  bell();
 
-  playBell();
-
-  document.getElementById("status").innerHTML =
-    "🗳️ Rozpoczęto głosowanie: " + bill;
-
-  channel.postMessage({
-    type:"voteStart",
-    bill: bill
-  });
+  channel.postMessage({type:"voteStart", bill});
+  document.getElementById("status").innerText = "Głosowanie: " + bill;
 }
 
 function endVote(){
-  playBell();
-
-  document.getElementById("status").innerHTML =
-    "🛑 Głosowanie zakończone";
-
-  channel.postMessage({
-    type:"voteEnd"
-  });
+  bell();
+  channel.postMessage({type:"voteEnd"});
+  document.getElementById("status").innerText = "Głosowanie zakończone";
 }
 
-// ================= POSEŁ GŁOSUJE =================
-function sendVote(v){
-  channel.postMessage({
-    type:"vote",
-    value:v
-  });
-}
-
-// ================= MIKROFON =================
 function toggleMic(){
   mic = !mic;
+  bell();
 
-  playBell();
-
-  document.getElementById("status").innerHTML =
-    mic
-    ? "🎤 Mikrofon WŁĄCZONY"
-    : "🔇 Mikrofon WYŁĄCZONY";
-
-  channel.postMessage({
-    type:"mic",
-    active:mic
-  });
+  channel.postMessage({type:"mic", value:mic});
+  document.getElementById("status").innerText =
+    mic ? "🎤 Mikrofon ON" : "🔇 Mikrofon OFF";
 }
 
-// ================= STRAŻ =================
-function callGuard(){
-  const place = prompt(
-    "Podaj miejsce:
-1-120
-Mównica
-Ława rządowa
-Wyjście A/B/C/D/E"
-  );
-
-  if(place){
-    playBell();
-
-    document.getElementById("status").innerHTML =
-      "🚨 Straż wysłana do: " + place;
-
-    channel.postMessage({
-      type:"guard",
-      place:place
-    });
-  }
-}
-
-// ================= NIEJAWNE =================
 function lockAll(){
-  playBell();
-
-  document.getElementById("status").innerHTML =
-    "🔒 Posiedzenie niejawne rozpoczęte";
-
-  channel.postMessage({
-    type:"lock"
-  });
+  bell();
+  channel.postMessage({type:"lock"});
+  document.getElementById("status").innerText = "🔒 Niejawne posiedzenie";
 }
 
-// ================= ODBIÓR =================
+// ===== POSEŁ =====
+function sendVote(v){
+  channel.postMessage({type:"vote", value:v});
+}
+
+// ===== ODBIÓR =====
 channel.onmessage = (e) => {
 
-  // ===== POSEŁ =====
+  // POSEŁ
   if(role === "mp"){
 
     if(e.data.type === "lock"){
@@ -332,50 +249,33 @@ channel.onmessage = (e) => {
 
     if(e.data.type === "voteStart"){
       document.getElementById("voteInfo").innerHTML =
-        "🗳️ Trwa głosowanie:<br><b>" + e.data.bill + "</b>";
-
-      playBell();
+        "🗳️ Głosowanie: <b>" + e.data.bill + "</b>";
+      bell();
     }
 
     if(e.data.type === "voteEnd"){
-      document.getElementById("voteInfo").innerHTML =
-        "🛑 Głosowanie zakończone";
+      document.getElementById("voteInfo").innerText = "Zakończone";
     }
 
     if(e.data.type === "mic"){
-      document.getElementById("mpStatus").innerHTML =
-        e.data.active
-        ? "🎤 Mikrofon aktywny"
-        : "🔇 Mikrofon wyłączony";
-    }
-
-    if(e.data.type === "guard"){
-      document.getElementById("mpStatus").innerHTML =
-        "🚨 Straż Marszałkowska: " + e.data.place;
+      document.getElementById("mpStatus").innerText =
+        e.data.value ? "🎤 Mikrofon ON" : "🔇 Mikrofon OFF";
     }
   }
 
-  // ===== MARSZAŁEK =====
+  // MARSZAŁEK
   if(role === "marshal"){
 
     if(e.data.type === "vote"){
+      if(e.data.value === "ZA") votesFor++;
+      if(e.data.value === "PRZECIW") votesAgainst++;
 
-      if(e.data.value === "ZA"){
-        votesFor++;
-      }
-
-      if(e.data.value === "PRZECIW"){
-        votesAgainst++;
-      }
-
-      document.getElementById("za").innerText = votesFor;
-      document.getElementById("przeciw").innerText = votesAgainst;
+      document.getElementById("status").innerText =
+        `ZA: ${votesFor} | PRZECIW: ${votesAgainst}`;
 
       const seats = document.querySelectorAll(".seat");
-
-      if(seats[votesFor + votesAgainst - 1]){
-        seats[votesFor + votesAgainst - 1].classList.add("active");
-      }
+      const i = votesFor + votesAgainst - 1;
+      if(seats[i]) seats[i].classList.add("active");
     }
   }
 };
