@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Sejm 6.0</title>
+<title>Sejm 7.0</title>
 
 <style>
 body{
@@ -49,22 +49,6 @@ button,select{
 .dark{background:#111827;color:white;}
 .orange{background:#ea580c;color:white;}
 
-.seats{
-  display:grid;
-  grid-template-columns:repeat(12,1fr);
-  gap:3px;
-  margin-top:10px;
-}
-
-.seat{
-  width:14px;
-  height:14px;
-  background:#9ca3af;
-  border-radius:2px;
-}
-
-.active{background:#22c55e;}
-
 .lock{
   position:fixed;
   top:0;left:0;
@@ -77,8 +61,8 @@ button,select{
   align-items:center;
   flex-direction:column;
   font-size:26px;
-  z-index:999;
   text-align:center;
+  z-index:999;
 }
 
 .timer{
@@ -91,7 +75,7 @@ button,select{
 
 <body>
 
-<div class="topbar">🏛️ SEJM 6.0</div>
+<div class="topbar">🏛️ SEJM 7.0</div>
 
 <!-- MENU -->
 <div id="menu" class="container">
@@ -118,10 +102,10 @@ button,select{
       <button class="blue" onclick="startVote()">🗳️ Start głosowania</button>
       <button class="red" onclick="endVote()">🛑 Zakończ głosowanie</button>
 
-      <button class="orange" onclick="toggleMic()">🎤 Mikrofon mównicy</button>
+      <button class="orange" onclick="toggleMic()">🎤 Mikrofon</button>
 
-      <button class="dark" onclick="lockAll()">🔒 Zablokuj posłów</button>
-      <button class="green" onclick="unlockAll()">🔓 Odblokuj posłów</button>
+      <button class="dark" onclick="lockAll()">🔒 Blokada</button>
+      <button class="green" onclick="unlockAll()">🔓 Odblokuj</button>
 
       <select id="breakTime">
         <option value="10">10s</option>
@@ -137,14 +121,13 @@ button,select{
 
       <button class="dark" onclick="startBreak()">⏸️ Przerwa</button>
 
-      <button class="red" onclick="callGuard()">🚨 Straż Marszałkowska</button>
-
-      <button class="red" onclick="permaLock()">⛔ Zablokuj NA STAŁE</button>
-      <button class="green" onclick="removePermaLock()">🔓 Usuń blokadę stałą</button>
+      <button class="red" onclick="permaLock()">⛔ PERMA LOCK</button>
+      <button class="green" onclick="removePermaLock()">🔓 Usuń PERMA LOCK</button>
 
       <div id="status" style="margin-top:10px;font-weight:bold;">Gotowy</div>
 
-      <div class="seats" id="seats"></div>
+      <div id="tribunePanel" style="margin-top:10px;"></div>
+
     </div>
   </div>
 </div>
@@ -161,14 +144,16 @@ button,select{
       <button class="blue" onclick="vote('ZA')">👍 ZA</button>
       <button class="red" onclick="vote('PRZECIW')">👎 PRZECIW</button>
 
+      <button class="orange" onclick="requestTribune()">🎤 Chcę do mównicy</button>
+
       <button class="green" onclick="emergencyUnlock()">🚨 Awaryjne odblokowanie</button>
 
-      <div id="mpStatus">Oczekiwanie...</div>
+      <div id="mpStatus"></div>
     </div>
   </div>
 
   <div class="lock" id="lock">
-    PRZERWA / BLOKADA
+    SYSTEM ZABLOKOWANY
     <div class="timer" id="timer"></div>
   </div>
 </div>
@@ -179,7 +164,7 @@ const ch = new BroadcastChannel("sejm");
 
 let role="";
 let timerInterval=null;
-let permanentLock = localStorage.getItem("permaLock")==="true";
+let perma = localStorage.getItem("perma") === "true";
 
 // ===== START =====
 function start(r){
@@ -188,64 +173,40 @@ function start(r){
 
   if(role==="marshal"){
     document.getElementById("marshalPanel").style.display="block";
-    createSeats();
   }
 
   if(role==="mp"){
     document.getElementById("mpPanel").style.display="block";
 
-    if(permanentLock){
-      document.getElementById("lock").style.display="flex";
-      document.getElementById("timer").innerText="BLOKADA STAŁA";
+    if(perma){
+      lockScreen("BLOKADA STAŁA");
     }
   }
 }
 
-// ===== SALA =====
-function createSeats(){
-  const s=document.getElementById("seats");
-  for(let i=0;i<120;i++){
-    let d=document.createElement("div");
-    d.className="seat";
-    s.appendChild(d);
-  }
+// ===== LOCK UI =====
+function lockScreen(text){
+  document.getElementById("lock").style.display="flex";
+  document.getElementById("timer").innerText=text;
 }
 
-// ===== DŹWIĘK =====
-function beep(){
-  const ctx=new AudioContext();
-  const o=ctx.createOscillator();
-  o.frequency.value=700;
-  o.connect(ctx.destination);
-  o.start();
-  setTimeout(()=>o.stop(),150);
-}
-
-// ===== GŁOSOWANIE =====
+// ===== MARSZAŁEK =====
 function startVote(){
-  ch.postMessage({type:"start", bill:document.getElementById("bill").value});
+  ch.postMessage({type:"start", bill:bill.value});
 }
+
 function endVote(){
   ch.postMessage({type:"end"});
 }
+
 function vote(v){
   ch.postMessage({type:"vote", value:v});
 }
 
-// ===== MIC =====
-let mic=true;
 function toggleMic(){
-  mic=!mic;
-  ch.postMessage({type:"mic", value:mic});
+  ch.postMessage({type:"mic"});
 }
 
-// ===== STRAŻ =====
-function callGuard(){
-  let p=prompt("Miejsce:");
-  if(p) ch.postMessage({type:"guard", place:p});
-}
-
-// ===== BLOKADY =====
 function lockAll(){
   ch.postMessage({type:"lock"});
 }
@@ -256,27 +217,35 @@ function unlockAll(){
 
 // ===== PRZERWA =====
 function startBreak(){
-  let t=parseInt(document.getElementById("breakTime").value);
-  ch.postMessage({type:"break", time:t});
+  ch.postMessage({
+    type:"break",
+    time:parseInt(breakTime.value)
+  });
 }
 
-// ===== PERMA LOCK =====
+// ===== PERMA =====
 function permaLock(){
-  localStorage.setItem("permaLock","true");
-  permanentLock=true;
+  perma=true;
+  localStorage.setItem("perma","true");
   ch.postMessage({type:"permalock"});
 }
 
 function removePermaLock(){
-  localStorage.setItem("permaLock","false");
-  permanentLock=false;
+  perma=false;
+  localStorage.setItem("perma","false");
   ch.postMessage({type:"unpermalock"});
+}
+
+// ===== MÓWNICA =====
+function requestTribune(){
+  ch.postMessage({type:"tribuneRequest"});
+  mpStatus.innerText="Wysłano prośbę...";
 }
 
 // ===== AWARYJNE =====
 function emergencyUnlock(){
-  let pass=prompt("Hasło:");
-  if(pass==="245516364"){
+  let p=prompt("Hasło:");
+  if(p==="245516364"){
     removePermaLock();
     ch.postMessage({type:"unlock"});
   }
@@ -285,55 +254,65 @@ function emergencyUnlock(){
 // ===== ODBIÓR =====
 ch.onmessage=(e)=>{
 
+  // POSEŁ
   if(role==="mp"){
 
-    if(e.data.type==="lock"){
-      document.getElementById("lock").style.display="flex";
-    }
+    if(e.data.type==="lock") lockScreen("BLOKADA");
 
-    if(e.data.type==="unlock"){
+    if(e.data.type==="unlock")
       document.getElementById("lock").style.display="none";
-    }
 
-    if(e.data.type==="permalock"){
-      document.getElementById("lock").style.display="flex";
-      document.getElementById("timer").innerText="BLOKADA STAŁA";
-    }
+    if(e.data.type==="permalock")
+      lockScreen("BLOKADA STAŁA");
 
-    if(e.data.type==="unpermalock"){
+    if(e.data.type==="unpermalock")
       document.getElementById("lock").style.display="none";
-    }
 
     if(e.data.type==="break"){
-      let time=e.data.time;
-      document.getElementById("lock").style.display="flex";
+      let t=e.data.time;
+      lockScreen("PRZERWA");
 
       clearInterval(timerInterval);
 
       timerInterval=setInterval(()=>{
-        document.getElementById("timer").innerText=time+"s";
-        time--;
-
-        if(time<0){
+        timer.innerText=t+"s";
+        t--;
+        if(t<0){
           clearInterval(timerInterval);
           document.getElementById("lock").style.display="none";
         }
       },1000);
     }
 
-    if(e.data.type==="start"){
-      document.getElementById("voteInfo").innerText="Głosowanie: "+e.data.bill;
-    }
+    if(e.data.type==="tribuneResponse"){
+      if(e.data.value){
+        mpStatus.innerText="✔ Marszałek pozwolił (10s)";
+      } else {
+        mpStatus.innerText="❌ Marszałek odmówił (10s)";
+      }
 
-    if(e.data.type==="end"){
-      document.getElementById("voteInfo").innerText="Zakończone";
+      setTimeout(()=>mpStatus.innerText="",10000);
     }
+  }
 
-    if(e.data.type==="guard"){
-      document.getElementById("mpStatus").innerText="Straż: "+e.data.place;
+  // MARSZAŁEK
+  if(role==="marshal"){
+
+    if(e.data.type==="tribuneRequest"){
+      tribunePanel.innerHTML=`
+        🟨 Poseł chce do mównicy<br>
+        <button onclick="respond(true)">✔</button>
+        <button onclick="respond(false)">❌</button>
+      `;
     }
   }
 };
+
+// ===== MARSZAŁEK ODPOWIEDŹ =====
+function respond(v){
+  ch.postMessage({type:"tribuneResponse", value:v});
+  tribunePanel.innerHTML="";
+}
 
 </script>
 
