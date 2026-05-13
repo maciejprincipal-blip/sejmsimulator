@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Sejm Symulator</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f3f4f6;
+}
+
+.topbar {
+  background: #111827;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+.panel {
+  background: white;
+  padding: 20px;
+  width: 320px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.marszalek {
+  background: #2563eb;
+  color: white;
+}
+
+.posel {
+  background: #16a34a;
+  color: white;
+}
+
+.lock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  color: white;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-size: 26px;
+  z-index: 999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">SYSTEM SEJMU</div>
+
+<div class="container">
+  <div class="panel">
+
+    <h2>Wybierz ekran</h2>
+
+    <button class="marszalek" onclick="start('marshal')">
+      🟦 Marszałek
+    </button>
+
+    <button class="posel" onclick="start('mp')">
+      🟩 Poseł
+    </button>
+
+  </div>
+</div>
+
+<div class="lock" id="lock">
+🔒 MONITOR ZABLOKOWANY PRZEZ MARSZAŁKA
+</div>
+
+<script>
+
+const channel = new BroadcastChannel("sejm");
+let role = "";
+
+function start(r){
+  role = r;
+
+  // 🟦 MARSZAŁEK
+  if(role === "marshal"){
+    document.body.innerHTML = `
+      <div class="topbar">🟦 MARSZAŁEK</div>
+
+      <div class="container">
+        <div class="panel">
+
+          <button onclick="lock()">🔒 Zablokuj posłów</button>
+          <button onclick="vote('start')">🗳️ Start głosowania</button>
+          <button onclick="vote('end')">🗳️ Zakończ głosowanie</button>
+
+        </div>
+      </div>
+    `;
+  }
+
+  // 🟩 POSEŁ
+  if(role === "mp"){
+    document.body.innerHTML = `
+      <div class="topbar">🟩 POSEŁ</div>
+
+      <div class="container">
+        <div class="panel">
+          🟢 Jesteś na sali obrad
+        </div>
+      </div>
+
+      <div class="lock" id="lock">
+        🔒 MONITOR ZABLOKOWANY PRZEZ MARSZAŁKA
+      </div>
+    `;
+  }
+}
+
+// 🔒 MARSZAŁEK BLOKUJE
+function lock(){
+  channel.postMessage({type:"lock"});
+}
+
+// 🗳️ GŁOSOWANIE
+function vote(type){
+  channel.postMessage({type:"vote", value:type});
+}
+
+// 👂 POSEŁ ODBIERA SYGNAŁ
+channel.onmessage = (e) => {
+
+  if(role !== "mp") return;
+
+  if(e.data.type === "lock"){
+    document.getElementById("lock").style.display = "flex";
+  }
+
+  if(e.data.type === "vote"){
+    alert("GŁOSOWANIE: " + e.data.value);
+  }
+
+};
+
+</script>
+
+</body>
+</html>
