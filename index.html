@@ -2,105 +2,101 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Sejm Symulator 3.0</title>
+<title>Sejm 5.0</title>
 
 <style>
-body {
-  font-family: Arial;
-  margin: 0;
-  background: #f3f4f6;
+body{
+  margin:0;
+  font-family:Arial;
+  background:#eef2ff;
 }
 
-.topbar {
-  background: #111827;
-  color: white;
-  padding: 12px;
-  text-align: center;
-  font-weight: bold;
+.topbar{
+  background:#111827;
+  color:white;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;
 }
 
-.container {
-  display: flex;
-  justify-content: center;
-  padding: 30px;
+.container{
+  display:flex;
+  justify-content:center;
+  padding:20px;
 }
 
-.panel {
-  background: white;
-  padding: 20px;
-  width: 420px;
-  border-radius: 12px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.15);
+.panel{
+  background:white;
+  padding:20px;
+  width:450px;
+  border-radius:12px;
+  box-shadow:0 0 15px rgba(0,0,0,0.15);
 }
 
-button, select {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
+button,select{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-.marszalek { background: #2563eb; color: white; }
-.posel { background: #16a34a; color: white; }
-.red { background: #dc2626; color: white; }
-.orange { background: #ea580c; color: white; }
-.dark { background: #111827; color: white; }
+.blue{background:#2563eb;color:white;}
+.green{background:#16a34a;color:white;}
+.red{background:#dc2626;color:white;}
+.dark{background:#111827;color:white;}
+.orange{background:#ea580c;color:white;}
 
-.lock {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: black;
-  color: white;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  font-size: 28px;
-  flex-direction: column;
-  z-index: 999;
+.seats{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:3px;
+  margin-top:10px;
 }
 
-.seats {
-  display: grid;
-  grid-template-columns: repeat(12,1fr);
-  gap: 4px;
-  margin-top: 10px;
+.seat{
+  width:14px;
+  height:14px;
+  background:#9ca3af;
+  border-radius:2px;
 }
 
-.seat {
-  width: 16px;
-  height: 16px;
-  background: #9ca3af;
-  border-radius: 3px;
+.active{background:#22c55e;}
+
+.lock{
+  position:fixed;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background:black;
+  color:white;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  font-size:26px;
+  z-index:999;
 }
 
-.active {
-  background: #22c55e;
+.timer{
+  font-size:20px;
+  margin-top:10px;
+  color:#fbbf24;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">🏛️ SEJM SYSTEM</div>
+<div class="topbar">🏛️ SEJM 5.0</div>
 
-<!-- MENU -->
 <div id="menu" class="container">
   <div class="panel">
-
     <h2>Wybierz ekran</h2>
-
-    <button class="marszalek" onclick="start('marshal')">
-      🟦 Marszałek
-    </button>
-
-    <button class="posel" onclick="start('mp')">
-      🟩 Poseł
-    </button>
-
+    <button class="blue" onclick="start('marshal')">🟦 Marszałek</button>
+    <button class="green" onclick="start('mp')">🟩 Poseł</button>
   </div>
 </div>
 
@@ -113,21 +109,37 @@ button, select {
 
       <select id="bill">
         <option>Ustawa budżetowa</option>
-        <option>Ustawa o edukacji</option>
-        <option>Ustawa o internecie</option>
+        <option>Ustawa edukacyjna</option>
+        <option>Ustawa bezpieczeństwa</option>
       </select>
 
-      <button class="marszalek" onclick="startVote()">🗳️ Start głosowania</button>
-      <button class="red" onclick="endVote()">🛑 Zakończ głosowanie</button>
-      <button class="orange" onclick="toggleMic()">🎤 Mikrofon</button>
-      <button class="dark" onclick="lockAll()">🔒 Posiedzenie niejawne</button>
+      <button class="blue" onclick="startVote()">🗳️ Start głosowania</button>
+      <button class="red" onclick="endVote()">🛑 Koniec głosowania</button>
 
-      <div id="status" style="margin-top:10px;font-weight:bold;">
-        System gotowy
-      </div>
+      <button class="orange" onclick="toggleMic()">🎤 Mikrofon mównicy</button>
+
+      <button class="dark" onclick="lockAll()">🔒 Zablokuj posłów</button>
+      <button class="green" onclick="unlockAll()">🔓 Odblokuj posłów</button>
+
+      <select id="breakTime">
+        <option value="10">10s</option>
+        <option value="20">20s</option>
+        <option value="60">1 min</option>
+        <option value="300">5 min</option>
+        <option value="600">10 min</option>
+        <option value="900">15 min</option>
+        <option value="1200">20 min</option>
+        <option value="1500">25 min</option>
+        <option value="1800">30 min</option>
+      </select>
+
+      <button class="dark" onclick="startBreak()">⏸️ Przerwa</button>
+
+      <button class="red" onclick="callGuard()">🚨 Straż Marszałkowska</button>
+
+      <div id="status" style="margin-top:10px;font-weight:bold;">Gotowy</div>
 
       <div class="seats" id="seats"></div>
-
     </div>
   </div>
 </div>
@@ -141,141 +153,151 @@ button, select {
 
       <div id="voteInfo">Brak głosowania</div>
 
-      <button class="marszalek" onclick="sendVote('ZA')">👍 ZA</button>
-      <button class="red" onclick="sendVote('PRZECIW')">👎 PRZECIW</button>
+      <button class="blue" onclick="vote('ZA')">👍 ZA</button>
+      <button class="red" onclick="vote('PRZECIW')">👎 PRZECIW</button>
 
-      <div id="mpStatus" style="margin-top:10px;">
-        Oczekiwanie na Marszałka
-      </div>
+      <button class="green" onclick="emergencyUnlock()">🚨 Awaryjne odblokowanie</button>
 
+      <div id="mpStatus">Oczekiwanie...</div>
     </div>
   </div>
 
   <div class="lock" id="lock">
-    🔒 POSIEDZENIE NIEJAWNE
+    PRZERWA | RZECZPOSPOLITA POLSKA
+    <div class="timer" id="timer"></div>
   </div>
 </div>
 
 <script>
 
-const channel = new BroadcastChannel("sejm");
+const ch = new BroadcastChannel("sejm");
 
-let role = "";
-let votesFor = 0;
-let votesAgainst = 0;
-let mic = true;
+let role="";
+let timerInterval=null;
 
 // ===== START =====
 function start(r){
-  role = r;
+  role=r;
+  document.getElementById("menu").style.display="none";
 
-  document.getElementById("menu").style.display = "none";
-
-  if(role === "marshal"){
-    document.getElementById("marshalPanel").style.display = "block";
+  if(role==="marshal"){
+    document.getElementById("marshalPanel").style.display="block";
     createSeats();
   }
 
-  if(role === "mp"){
-    document.getElementById("mpPanel").style.display = "block";
+  if(role==="mp"){
+    document.getElementById("mpPanel").style.display="block";
   }
 }
 
 // ===== SALA =====
 function createSeats(){
-  const s = document.getElementById("seats");
-
+  const s=document.getElementById("seats");
   for(let i=0;i<120;i++){
-    const d = document.createElement("div");
-    d.className = "seat";
+    let d=document.createElement("div");
+    d.className="seat";
     s.appendChild(d);
   }
 }
 
 // ===== DŹWIĘK =====
-function bell(){
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const o = ctx.createOscillator();
-  o.frequency.value = 700;
+function beep(){
+  const ctx=new AudioContext();
+  const o=ctx.createOscillator();
+  o.frequency.value=700;
   o.connect(ctx.destination);
   o.start();
   setTimeout(()=>o.stop(),150);
 }
 
-// ===== MARSZAŁEK =====
+// ===== GŁOSOWANIE =====
 function startVote(){
-  const bill = document.getElementById("bill").value;
-  bell();
-
-  channel.postMessage({type:"voteStart", bill});
-  document.getElementById("status").innerText = "Głosowanie: " + bill;
+  ch.postMessage({type:"start", bill:document.getElementById("bill").value});
 }
-
 function endVote(){
-  bell();
-  channel.postMessage({type:"voteEnd"});
-  document.getElementById("status").innerText = "Głosowanie zakończone";
+  ch.postMessage({type:"end"});
+}
+function vote(v){
+  ch.postMessage({type:"vote", value:v});
 }
 
+// ===== MIKROFON =====
+let mic=true;
 function toggleMic(){
-  mic = !mic;
-  bell();
-
-  channel.postMessage({type:"mic", value:mic});
-  document.getElementById("status").innerText =
-    mic ? "🎤 Mikrofon ON" : "🔇 Mikrofon OFF";
+  mic=!mic;
+  ch.postMessage({type:"mic", value:mic});
 }
 
+// ===== STRAŻ =====
+function callGuard(){
+  let p=prompt("Miejsce (1-120 / Mównica / A-E):");
+  if(p) ch.postMessage({type:"guard", place:p});
+}
+
+// ===== BLOKADA =====
 function lockAll(){
-  bell();
-  channel.postMessage({type:"lock"});
-  document.getElementById("status").innerText = "🔒 Niejawne posiedzenie";
+  ch.postMessage({type:"lock"});
 }
 
-// ===== POSEŁ =====
-function sendVote(v){
-  channel.postMessage({type:"vote", value:v});
+function unlockAll(){
+  ch.postMessage({type:"unlock"});
+}
+
+// ===== PRZERWA =====
+function startBreak(){
+  let t=parseInt(document.getElementById("breakTime").value);
+  ch.postMessage({type:"break", time:t});
+}
+
+// ===== AWARYJNE =====
+function emergencyUnlock(){
+  let pass=prompt("Hasło Marszałka:");
+  if(pass==="245516364"){
+    ch.postMessage({type:"unlock"});
+  } else alert("BŁĘDNE HASŁO");
 }
 
 // ===== ODBIÓR =====
-channel.onmessage = (e) => {
+ch.onmessage=(e)=>{
 
-  // POSEŁ
-  if(role === "mp"){
+  if(role==="mp"){
 
-    if(e.data.type === "lock"){
-      document.getElementById("lock").style.display = "flex";
+    if(e.data.type==="lock"){
+      document.getElementById("lock").style.display="flex";
     }
 
-    if(e.data.type === "voteStart"){
-      document.getElementById("voteInfo").innerHTML =
-        "🗳️ Głosowanie: <b>" + e.data.bill + "</b>";
-      bell();
+    if(e.data.type==="unlock"){
+      document.getElementById("lock").style.display="none";
     }
 
-    if(e.data.type === "voteEnd"){
-      document.getElementById("voteInfo").innerText = "Zakończone";
+    if(e.data.type==="break"){
+      let time=e.data.time;
+      document.getElementById("lock").style.display="flex";
+
+      clearInterval(timerInterval);
+
+      timerInterval=setInterval(()=>{
+        document.getElementById("timer").innerText=time+"s";
+        time--;
+
+        if(time<0){
+          clearInterval(timerInterval);
+          document.getElementById("lock").style.display="none";
+        }
+
+      },1000);
     }
 
-    if(e.data.type === "mic"){
-      document.getElementById("mpStatus").innerText =
-        e.data.value ? "🎤 Mikrofon ON" : "🔇 Mikrofon OFF";
+    if(e.data.type==="start"){
+      document.getElementById("voteInfo").innerText="Głosowanie: "+e.data.bill;
     }
-  }
 
-  // MARSZAŁEK
-  if(role === "marshal"){
+    if(e.data.type==="end"){
+      document.getElementById("voteInfo").innerText="Zakończone";
+    }
 
-    if(e.data.type === "vote"){
-      if(e.data.value === "ZA") votesFor++;
-      if(e.data.value === "PRZECIW") votesAgainst++;
-
-      document.getElementById("status").innerText =
-        `ZA: ${votesFor} | PRZECIW: ${votesAgainst}`;
-
-      const seats = document.querySelectorAll(".seat");
-      const i = votesFor + votesAgainst - 1;
-      if(seats[i]) seats[i].classList.add("active");
+    if(e.data.type==="guard"){
+      document.getElementById("mpStatus").innerText="Straż: "+e.data.place;
     }
   }
 };
